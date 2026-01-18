@@ -12,11 +12,11 @@ const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json');
 
 // VAPID keys (for production, generate these securely and store them safely)
 // You can generate new keys using: npx web-push generate-vapid-keys
-const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa40HIcIBVhI8eEO2zXt3a7s_QtR8Y_sWnRYL-srHOKyNlqeG9B2MNTz9FyHc';
-const VAPID_PRIVATE_KEY = 'SJN1JT9rPABc0I5hS-8i7jxO3vV6GN8sYRpW_KZxGgA';
+const VAPID_PUBLIC_KEY = 'BCVaoNbyacUqc0Y5OsDYwZBxpMxs0rVMmRN0tHzz9w2KO1Bz_1vEiDELerADcIaU_2bSfuKChQWvSI0mQNMNrfU';
+const VAPID_PRIVATE_KEY = '84dVOEZz_tlsyigMJUXimJtdG6wQf0cwnCHetnjsR5s';
 
 webpush.setVapidDetails(
-  'mailto:your-email@example.com',
+  'mailto:maxie@example.com',
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY
 );
