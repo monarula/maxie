@@ -91,6 +91,11 @@ async function writeDictionary(dictionary) {
 
 // API Routes
 
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Get all words
 app.get('/api/words', async (req, res) => {
   try {
@@ -325,16 +330,23 @@ function scheduleDailyNotifications() {
 
 // Initialize and start server
 async function startServer() {
-  await initializeDictionary();
-  await initializeSubscriptions();
-  
-  // Start daily notification scheduler
-  scheduleDailyNotifications();
-  
-  app.listen(PORT, () => {
-    console.log(`Dictionary app server running at http://localhost:${PORT}`);
-    console.log('Word of the Day notifications are scheduled!');
-  });
+  try {
+    await initializeDictionary();
+    await initializeSubscriptions();
+    
+    // Start daily notification scheduler
+    scheduleDailyNotifications();
+    
+    // Bind to 0.0.0.0 for Render deployment
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Dictionary app server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log('Word of the Day notifications are scheduled!');
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
 startServer();
