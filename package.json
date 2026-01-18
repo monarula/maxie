@@ -1,7 +1,7 @@
 {
-  "name": "dictionary-app",
+  "name": "maxie",
   "version": "1.0.0",
-  "description": "A web app to create and manage your personal dictionary",
+  "description": "Maxie - A web app to create and manage your personal dictionary",
   "main": "server.js",
   "engines": {
     "node": ">=14.0.0",

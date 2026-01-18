@@ -101,6 +101,28 @@ app.get('/api/words', async (req, res) => {
   }
 });
 
+// Get last word added timestamp
+app.get('/api/words/last-added', async (req, res) => {
+  try {
+    const dictionary = await readDictionary();
+    
+    if (dictionary.length === 0) {
+      return res.json({ lastAdded: null });
+    }
+
+    // Find the most recently created word
+    const lastWord = dictionary.reduce((latest, word) => {
+      const wordTime = new Date(word.createdAt).getTime();
+      const latestTime = latest ? new Date(latest.createdAt).getTime() : 0;
+      return wordTime > latestTime ? word : latest;
+    }, null);
+
+    res.json({ lastAdded: lastWord ? lastWord.createdAt : null });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve last added timestamp' });
+  }
+});
+
 // Add a new word
 app.post('/api/words', async (req, res) => {
   try {
@@ -133,7 +155,13 @@ app.post('/api/words', async (req, res) => {
     }
 
     await writeDictionary(dictionary);
-    res.json({ success: true, dictionary });
+    
+    // Find the last added word timestamp (for newly added words)
+    const lastAdded = existingIndex === -1 
+      ? new Date().toISOString() 
+      : dictionary.find(w => w.id === dictionary[dictionary.length - 1]?.id)?.createdAt || null;
+    
+    res.json({ success: true, dictionary, lastAdded });
   } catch (error) {
     res.status(500).json({ error: 'Failed to add word' });
   }

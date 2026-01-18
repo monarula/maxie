@@ -1,6 +1,6 @@
-# 📚 Personal Dictionary Web App
+# 📚 Maxie - Personal Dictionary Web App
 
-A beautiful web application where you can build your own ever-growing personal dictionary by adding words and their meanings.
+Maxie is a beautiful web application where you can build your own ever-growing personal dictionary by adding words and their meanings.
 
 ## Features
 

@@ -2,15 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Personal Dictionary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Maxie - Personal Dictionary</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📚 My Personal Dictionary</h1>
-            <p class="subtitle">Build your ever-growing word collection</p>
+            <h1>📚 Maxie</h1>
+            <p class="subtitle">Your personal dictionary - build your ever-growing word collection</p>
         </header>
 
         <div class="main-content">
@@ -39,8 +42,38 @@
                     <button type="submit" class="btn-primary">
                         <span>➕ Add Word</span>
                     </button>
+                    <button type="button" id="lookupBtn" class="btn-lookup">
+                        <span>🔍 Auto-lookup Meaning</span>
+                    </button>
                 </form>
             </section>
+
+            <!-- Auto-lookup Modal -->
+            <div id="lookupModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📖 Auto-detected Meaning</h3>
+                        <button class="modal-close" onclick="closeLookupModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="lookupLoading" class="lookup-loading" style="display: none;">
+                            <p>🔍 Looking up definition...</p>
+                        </div>
+                        <div id="lookupResult" style="display: none;">
+                            <p class="lookup-word"><strong id="lookupWordText"></strong></p>
+                            <p class="lookup-meaning" id="lookupMeaningText"></p>
+                        </div>
+                        <div id="lookupError" class="lookup-error" style="display: none;">
+                            <p>❌ Could not find a definition automatically. Please enter the meaning manually.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="useAutoMeaningBtn" class="btn-secondary" style="display: none;">Use This Meaning</button>
+                        <button id="editManuallyBtn" class="btn-secondary" style="display: none;">Enter Manually</button>
+                        <button class="btn-secondary" onclick="closeLookupModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Notification Settings -->
             <section class="notification-section">
@@ -70,6 +103,7 @@
                 </div>
                 <div class="stats">
                     <span id="wordCount">0 words</span>
+                    <span id="lastAdded" class="last-added-time"></span>
                 </div>
             </section>
 
