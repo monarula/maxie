@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Dictionary</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 My Personal Dictionary</h1>
+            <p class="subtitle">Build your ever-growing word collection</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Add Word Form -->
+            <section class="add-word-section">
+                <h2>Add a New Word</h2>
+                <form id="wordForm">
+                    <div class="form-group">
+                        <label for="wordInput">Word</label>
+                        <input 
+                            type="text" 
+                            id="wordInput" 
+                            placeholder="Enter a word..."
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="meaningInput">Meaning</label>
+                        <textarea 
+                            id="meaningInput" 
+                            placeholder="Enter the meaning..."
+                            rows="3"
+                            required
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        <span>➕ Add Word</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Notification Settings -->
+            <section class="notification-section">
+                <h2>📱 Word of the Day Notifications</h2>
+                <div class="notification-controls">
+                    <p class="notification-description">Get daily notifications with a random word from your dictionary!</p>
+                    <div class="notification-toggle">
+                        <button id="enableNotificationsBtn" class="btn-secondary" style="display: none;">
+                            🔔 Enable Notifications
+                        </button>
+                        <button id="disableNotificationsBtn" class="btn-secondary danger" style="display: none;">
+                            🔕 Disable Notifications
+                        </button>
+                        <span id="notificationStatus" class="notification-status"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="🔍 Search words or meanings..."
+                    >
+                </div>
+                <div class="stats">
+                    <span id="wordCount">0 words</span>
+                </div>
+            </section>
+
+            <!-- Dictionary Display -->
+            <section class="dictionary-section">
+                <h2>Your Dictionary</h2>
+                <div id="dictionaryContainer" class="dictionary-grid">
+                    <p class="empty-state">No words added yet. Start building your dictionary!</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
