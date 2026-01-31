@@ -24,7 +24,17 @@ webpush.setVapidDetails(
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static('public', {
+    maxAge: '1d', // Cache static files for 1 day
+    etag: true
+}));
+
+// Explicitly serve service worker with correct headers
+app.get('/sw.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
 
 // Initialize dictionary file if it doesn't exist
 async function initializeDictionary() {
@@ -89,6 +99,22 @@ async function writeDictionary(dictionary) {
   }
 }
 
+// Mutex to prevent race conditions when multiple requests read-modify-write simultaneously.
+// Without this, rapid adds or concurrent requests can overwrite each other and lose words.
+let dictionaryLock = Promise.resolve();
+
+async function withDictionaryLock(operation) {
+  const prevLock = dictionaryLock;
+  let resolveLock;
+  dictionaryLock = new Promise(resolve => { resolveLock = resolve; });
+  try {
+    await prevLock;
+    return await operation();
+  } finally {
+    resolveLock();
+  }
+}
+
 // API Routes
 
 // Health check endpoint for Render
@@ -137,36 +163,40 @@ app.post('/api/words', async (req, res) => {
       return res.status(400).json({ error: 'Word and meaning are required' });
     }
 
-    const dictionary = await readDictionary();
-    
-    // Check if word already exists
-    const existingIndex = dictionary.findIndex(
-      entry => entry.word.toLowerCase() === word.toLowerCase()
-    );
+    const result = await withDictionaryLock(async () => {
+      const dictionary = await readDictionary();
+      
+      // Check if word already exists
+      const existingIndex = dictionary.findIndex(
+        entry => entry.word.toLowerCase() === word.toLowerCase()
+      );
 
-    if (existingIndex !== -1) {
-      // Update existing word
-      dictionary[existingIndex].meaning = meaning;
-      dictionary[existingIndex].updatedAt = new Date().toISOString();
-    } else {
-      // Add new word
-      dictionary.push({
-        id: Date.now().toString(),
-        word: word.trim(),
-        meaning: meaning.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-    }
+      if (existingIndex !== -1) {
+        // Update existing word
+        dictionary[existingIndex].meaning = meaning;
+        dictionary[existingIndex].updatedAt = new Date().toISOString();
+      } else {
+        // Add new word
+        dictionary.push({
+          id: Date.now().toString(),
+          word: word.trim(),
+          meaning: meaning.trim(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
 
-    await writeDictionary(dictionary);
+      await writeDictionary(dictionary);
+      
+      // Find the last added word timestamp (for newly added words)
+      const lastAdded = existingIndex === -1 
+        ? new Date().toISOString() 
+        : dictionary.find(w => w.id === dictionary[dictionary.length - 1]?.id)?.createdAt || null;
+      
+      return { dictionary, lastAdded };
+    });
     
-    // Find the last added word timestamp (for newly added words)
-    const lastAdded = existingIndex === -1 
-      ? new Date().toISOString() 
-      : dictionary.find(w => w.id === dictionary[dictionary.length - 1]?.id)?.createdAt || null;
-    
-    res.json({ success: true, dictionary, lastAdded });
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ error: 'Failed to add word' });
   }
@@ -176,10 +206,12 @@ app.post('/api/words', async (req, res) => {
 app.delete('/api/words/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const dictionary = await readDictionary();
-    const filtered = dictionary.filter(entry => entry.id !== id);
-    
-    await writeDictionary(filtered);
+    const filtered = await withDictionaryLock(async () => {
+      const dictionary = await readDictionary();
+      const result = dictionary.filter(entry => entry.id !== id);
+      await writeDictionary(result);
+      return result;
+    });
     res.json({ success: true, dictionary: filtered });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete word' });

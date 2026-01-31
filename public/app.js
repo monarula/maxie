@@ -25,11 +25,25 @@ async function initializeNotifications() {
         return;
     }
 
+    // Check if we're on HTTPS (required for service workers)
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        document.getElementById('enableNotificationsBtn').style.display = 'none';
+        document.getElementById('notificationStatus').textContent = 'HTTPS required for notifications';
+        return;
+    }
+
     try {
-        // Register service worker
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        // Register service worker with explicit scope
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+        });
+        
         serviceWorkerRegistration = registration;
-        console.log('Service Worker registered');
+        console.log('Service Worker registered successfully', registration);
+
+        // Wait for service worker to be ready
+        await navigator.serviceWorker.ready;
+        console.log('Service Worker is ready');
 
         // Check if already subscribed
         const subscription = await registration.pushManager.getSubscription();
@@ -55,7 +69,13 @@ async function initializeNotifications() {
         disableBtn.addEventListener('click', disableNotifications);
     } catch (error) {
         console.error('Error initializing notifications:', error);
-        document.getElementById('notificationStatus').textContent = 'Error setting up notifications';
+        const status = document.getElementById('notificationStatus');
+        status.textContent = `Error: ${error.message || 'Failed to register service worker'}`;
+        status.style.color = '#ef4444';
+        
+        // Hide buttons on error
+        document.getElementById('enableNotificationsBtn').style.display = 'none';
+        document.getElementById('disableNotificationsBtn').style.display = 'none';
     }
 }
 
