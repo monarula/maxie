@@ -61,6 +61,24 @@ git push -u origin main
 Once deployed, your app will be available at:
 **`https://dictionary-app.onrender.com`** (or your custom name)
 
+## Step 5b: Add PostgreSQL (So Words Persist) ⭐ Important
+
+On Render’s **free tier**, the server disk is **ephemeral**: anything written to files (like `dictionary.json`) is lost when the app restarts or goes to sleep (~15 min inactivity). So new words disappear and you only see what’s in the repo.
+
+To keep words (and notification subscriptions) across restarts:
+
+1. In the **Render Dashboard**, open your **Web Service**.
+2. Click **"New +"** → **"PostgreSQL"** (or go to Dashboard → New → PostgreSQL).
+3. Create a free Postgres database (same region as your app if possible).
+4. After it’s created, open the database → **"Info"** and copy the **Internal Database URL** (or External if your app is in another region).
+5. Open your **Web Service** → **Environment**.
+6. Add an environment variable:
+   - **Key**: `DATABASE_URL`
+   - **Value**: paste the connection URL (e.g. `postgresql://user:pass@host/dbname`).
+7. Click **Save**. Render will redeploy; when it’s done, the app will use Postgres and words will persist.
+
+(If `DATABASE_URL` is not set, the app still runs and uses JSON files—handy for local development.)
+
 ## Step 6: Update VAPID Keys (For Notifications)
 
 For push notifications to work in production:

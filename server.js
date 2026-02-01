@@ -4,11 +4,16 @@ const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
 const webpush = require('web-push');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DICTIONARY_FILE = path.join(__dirname, 'dictionary.json');
 const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json');
+
+// Use PostgreSQL when DATABASE_URL is set (e.g. on Render); otherwise use JSON files (local dev).
+// Render free tier has ephemeral disk—file writes are lost on restart/sleep—so use a free Postgres DB.
+const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
 
 // VAPID keys (for production, generate these securely and store them safely)
 // You can generate new keys using: npx web-push generate-vapid-keys
@@ -36,18 +41,46 @@ app.get('/sw.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
-// Initialize dictionary file if it doesn't exist
+// Initialize PostgreSQL tables (when using DATABASE_URL)
+async function initDb() {
+  if (!pool) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS words (
+        id TEXT PRIMARY KEY,
+        word TEXT NOT NULL,
+        meaning TEXT NOT NULL,
+        "createdAt" TIMESTAMPTZ NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        endpoint TEXT PRIMARY KEY,
+        data JSONB NOT NULL,
+        "subscribedAt" TIMESTAMPTZ NOT NULL
+      )
+    `);
+    console.log('PostgreSQL tables ready');
+  } catch (error) {
+    console.error('Failed to init DB:', error);
+    throw error;
+  }
+}
+
+// Initialize dictionary file if it doesn't exist (file-based mode only)
 async function initializeDictionary() {
+  if (pool) return;
   try {
     await fs.access(DICTIONARY_FILE);
   } catch (error) {
-    // File doesn't exist, create it with empty array
     await fs.writeFile(DICTIONARY_FILE, JSON.stringify([], null, 2));
   }
 }
 
-// Initialize subscriptions file if it doesn't exist
+// Initialize subscriptions file if it doesn't exist (file-based mode only)
 async function initializeSubscriptions() {
+  if (pool) return;
   try {
     await fs.access(SUBSCRIPTIONS_FILE);
   } catch (error) {
@@ -55,8 +88,17 @@ async function initializeSubscriptions() {
   }
 }
 
-// Read subscriptions from file
+// Read subscriptions (from DB or file)
 async function readSubscriptions() {
+  if (pool) {
+    try {
+      const { rows } = await pool.query('SELECT data FROM subscriptions ORDER BY "subscribedAt"');
+      return rows.map(r => r.data);
+    } catch (error) {
+      console.error('Error reading subscriptions:', error);
+      return [];
+    }
+  }
   try {
     const data = await fs.readFile(SUBSCRIPTIONS_FILE, 'utf8');
     return JSON.parse(data);
@@ -66,8 +108,25 @@ async function readSubscriptions() {
   }
 }
 
-// Write subscriptions to file
+// Write subscriptions (to DB or file)
 async function writeSubscriptions(subscriptions) {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM subscriptions');
+      for (const sub of subscriptions) {
+        const endpoint = sub.endpoint;
+        const subscribedAt = sub.subscribedAt || new Date().toISOString();
+        await pool.query(
+          'INSERT INTO subscriptions (endpoint, data, "subscribedAt") VALUES ($1, $2, $3) ON CONFLICT (endpoint) DO UPDATE SET data = $2, "subscribedAt" = $3',
+          [endpoint, JSON.stringify(sub), subscribedAt]
+        );
+      }
+      return true;
+    } catch (error) {
+      console.error('Error writing subscriptions:', error);
+      return false;
+    }
+  }
   try {
     await fs.writeFile(SUBSCRIPTIONS_FILE, JSON.stringify(subscriptions, null, 2));
     return true;
@@ -77,8 +136,23 @@ async function writeSubscriptions(subscriptions) {
   }
 }
 
-// Read dictionary from file
+// Read dictionary (from DB or file)
 async function readDictionary() {
+  if (pool) {
+    try {
+      const { rows } = await pool.query('SELECT id, word, meaning, "createdAt", "updatedAt" FROM words ORDER BY "createdAt"');
+      return rows.map(r => ({
+        id: r.id,
+        word: r.word,
+        meaning: r.meaning,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt
+      }));
+    } catch (error) {
+      console.error('Error reading dictionary:', error);
+      return [];
+    }
+  }
   try {
     const data = await fs.readFile(DICTIONARY_FILE, 'utf8');
     return JSON.parse(data);
@@ -88,8 +162,23 @@ async function readDictionary() {
   }
 }
 
-// Write dictionary to file
+// Write dictionary (to DB or file) — full replace
 async function writeDictionary(dictionary) {
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM words');
+      for (const w of dictionary) {
+        await pool.query(
+          'INSERT INTO words (id, word, meaning, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5)',
+          [w.id, w.word, w.meaning, w.createdAt, w.updatedAt]
+        );
+      }
+      return true;
+    } catch (error) {
+      console.error('Error writing dictionary:', error);
+      return false;
+    }
+  }
   try {
     await fs.writeFile(DICTIONARY_FILE, JSON.stringify(dictionary, null, 2));
     return true;
@@ -363,6 +452,7 @@ function scheduleDailyNotifications() {
 // Initialize and start server
 async function startServer() {
   try {
+    if (pool) await initDb();
     await initializeDictionary();
     await initializeSubscriptions();
     
