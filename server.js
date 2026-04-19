@@ -455,6 +455,14 @@ async function startServer() {
     if (pool) await initDb();
     await initializeDictionary();
     await initializeSubscriptions();
+
+    if (pool) {
+      console.log('Storage: PostgreSQL — dictionary data persists across deploys and restarts.');
+    } else {
+      console.warn(
+        'Storage: dictionary.json (file mode). On Render this data is NOT persistent. Set DATABASE_URL to use PostgreSQL.'
+      );
+    }
     
     // Start daily notification scheduler
     scheduleDailyNotifications();
