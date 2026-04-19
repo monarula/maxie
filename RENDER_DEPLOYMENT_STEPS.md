@@ -1,98 +1,115 @@
-# 🚀 Step-by-Step Render Deployment Guide
+# 🚀 Step-by-Step: Deploy Maxie (Dictionary App) on Render
 
-Your code is ready! Follow these steps to deploy to Render:
+Follow these steps in order. If your code is already on GitHub, skip to **Step 3**.
 
-## Step 1: Create GitHub Repository
+---
 
-1. Go to [github.com](https://github.com) and sign in (or create an account)
-2. Click the **"+"** icon in the top right → **"New repository"**
-3. Fill in:
-   - **Repository name**: `dictionary-app` (or any name you like)
-   - **Description**: "Personal Dictionary Web App"
-   - **Visibility**: Choose Public or Private
-   - **DO NOT** initialize with README, .gitignore, or license (we already have these)
-4. Click **"Create repository"**
+## Step 1: Put Your Code on GitHub
 
-## Step 2: Connect Your Local Code to GitHub
+1. Go to [github.com](https://github.com) and sign in (or create an account).
+2. Click the **"+"** in the top right → **"New repository"**.
+3. Set:
+   - **Repository name**: `dictionary-app` or `maxie` (your choice).
+   - **Description**: optional (e.g. "Personal Dictionary Web App").
+   - **Visibility**: Public or Private.
+   - Leave **"Add a README"** and **"Add .gitignore"** **unchecked** (this project already has them).
+4. Click **"Create repository"**.
 
-After creating the repo, GitHub will show you commands. Use these (replace `YOUR_USERNAME` with your GitHub username):
+---
 
+## Step 2: Push This Project to That Repo
+
+In a terminal, from your project folder (e.g. `C:\temp\dictionary-app`):
+
+**If you don’t have `git` set up here yet:**
 ```bash
 cd C:\temp\dictionary-app
-git remote add origin https://github.com/YOUR_USERNAME/dictionary-app.git
+git init
+git add .
+git commit -m "Initial commit"
 git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
 git push -u origin main
 ```
+Replace `YOUR_USERNAME` with your GitHub username and `REPO_NAME` with the repo you created (e.g. `dictionary-app`).
 
-**Or if you prefer SSH:**
+**If this folder is already a git repo with a remote:**
 ```bash
-git remote add origin git@github.com:YOUR_USERNAME/dictionary-app.git
-git branch -M main
+cd C:\temp\dictionary-app
+git add .
+git commit -m "Initial commit"   # only if there are uncommitted changes
 git push -u origin main
 ```
 
-## Step 3: Deploy on Render
+---
 
-1. Go to [render.com](https://render.com) and **Sign Up** (free, can use GitHub to sign in)
-2. Click **"New +"** button → **"Web Service"**
-3. Click **"Connect account"** if you haven't connected GitHub yet
-4. Select your **`dictionary-app`** repository
-5. Configure the service:
-   - **Name**: `dictionary-app` (or any name)
-   - **Environment**: `Node`
-   - **Region**: Choose closest to you
-   - **Branch**: `main`
-   - **Root Directory**: (leave empty)
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-6. Click **"Create Web Service"**
+## Step 3: Create a Web Service on Render
 
-## Step 4: Wait for Deployment
+1. Go to [render.com](https://render.com) and sign in (or sign up with GitHub).
+2. On the dashboard, click **"New +"** → **"Web Service"**.
+3. **Connect GitHub** (if asked): choose your account and allow Render to access your repos.
+4. In the list of repositories, find and click **your dictionary app repo** (e.g. `dictionary-app` or `maxie`).
+5. Click **"Connect"** next to that repo.
 
-- Render will automatically:
-  - Install dependencies
-  - Build your app
-  - Deploy it
-- This takes about 2-3 minutes
-- You'll see build logs in real-time
+---
 
-## Step 5: Your App is Live! 🎉
+## Step 4: Configure the Web Service
 
-Once deployed, your app will be available at:
-**`https://dictionary-app.onrender.com`** (or your custom name)
+Set these exactly (leave everything else as default unless you know what you’re doing):
 
-## Step 5b: Add PostgreSQL (So Words Persist) ⭐ Important
+| Field | Value |
+|-------|--------|
+| **Name** | `maxie` or `dictionary-app` (this becomes the URL: `https://NAME.onrender.com`) |
+| **Region** | Pick one close to you (e.g. Oregon, Ohio) |
+| **Branch** | `main` |
+| **Root Directory** | Leave **empty** |
+| **Runtime** | **Node** |
+| **Build Command** | `npm install` |
+| **Start Command** | `npm start` |
 
-On Render’s **free tier**, the server disk is **ephemeral**: anything written to files (like `dictionary.json`) is lost when the app restarts or goes to sleep (~15 min inactivity). So new words disappear and you only see what’s in the repo.
+6. Scroll down and click **"Create Web Service"**.
 
-To keep words (and notification subscriptions) across restarts:
+---
 
-1. In the **Render Dashboard**, open your **Web Service**.
-2. Click **"New +"** → **"PostgreSQL"** (or go to Dashboard → New → PostgreSQL).
-3. Create a free Postgres database (same region as your app if possible).
-4. After it’s created, open the database → **"Info"** and copy the **Internal Database URL** (or External if your app is in another region).
-5. Open your **Web Service** → **Environment**.
-6. Add an environment variable:
+## Step 5: Wait for the First Deploy
+
+- Render will run `npm install`, then `npm start`.
+- Watch the **Logs** tab; the first deploy usually takes 2–3 minutes.
+- When you see something like **"Your service is live at https://....onrender.com"**, the app is running.
+- Open that URL in your browser to use the dictionary app.
+
+---
+
+## Step 6 (Recommended): Add PostgreSQL So Words Persist
+
+On the free tier, Render’s disk is temporary. Without a database, words disappear after the app restarts or sleeps (~15 min idle).
+
+1. In the Render dashboard, click **"New +"** → **"PostgreSQL"**.
+2. Name it (e.g. `maxie-db`), choose the **same region** as your web service, then **"Create Database"**.
+3. When it’s ready, open the new **PostgreSQL** service → **"Info"** (or "Connect").
+4. Copy the **"Internal Database URL"** (use **External** only if the DB is in a different region).
+5. Go back to your **Web Service** (maxie/dictionary-app) → **"Environment"** tab.
+6. Click **"Add Environment Variable"**:
    - **Key**: `DATABASE_URL`
-   - **Value**: paste the connection URL (e.g. `postgresql://user:pass@host/dbname`).
-7. Click **Save**. Render will redeploy; when it’s done, the app will use Postgres and words will persist.
+   - **Value**: paste the URL you copied.
+7. Click **"Save Changes"**. Render will redeploy; after that, words and notification subscriptions will persist.
 
-(If `DATABASE_URL` is not set, the app still runs and uses JSON files—handy for local development.)
+---
 
-## Step 6: Update VAPID Keys (For Notifications)
+## Step 7 (Optional): Push Notifications (VAPID Keys)
 
-For push notifications to work in production:
+To get “Word of the Day” push notifications in production:
 
-1. **Generate new VAPID keys**:
+1. **Generate VAPID keys** (in your project folder):
    ```bash
    cd C:\temp\dictionary-app
    npx web-push generate-vapid-keys
    ```
 
-2. **Copy the keys** and update `server.js`:
-   - Replace `VAPID_PUBLIC_KEY` with the public key
-   - Replace `VAPID_PRIVATE_KEY` with the private key
-   - Update the email in `webpush.setVapidDetails()`
+2. **Update `server.js`** with the two keys it prints:
+   - Replace the value of `VAPID_PUBLIC_KEY` with the **public** key.
+   - Replace the value of `VAPID_PRIVATE_KEY` with the **private** key.
+   - In `webpush.setVapidDetails()`, set the first argument to your email (e.g. `'mailto:you@example.com'`).
 
 3. **Commit and push**:
    ```bash
@@ -100,26 +117,32 @@ For push notifications to work in production:
    git commit -m "Update VAPID keys for production"
    git push
    ```
-   Render will automatically redeploy!
-
-## ✅ That's It!
-
-Your dictionary app is now live on the web! You can:
-- Access it from any device
-- Share the URL with others
-- Enable notifications on your phone
-- Add words from anywhere
-
-## 🔄 Future Updates
-
-Whenever you make changes:
-```bash
-git add .
-git commit -m "Your change description"
-git push
-```
-Render will automatically redeploy your app!
+   Render will redeploy automatically.
 
 ---
 
-**Need help?** Let me know if you get stuck at any step!
+## ✅ You’re Done
+
+Your app is live at **`https://YOUR-SERVICE-NAME.onrender.com`**. You can:
+- Open it on any device
+- Add and search words
+- (If you added Postgres) Keep words across restarts
+- (If you set VAPID) Enable daily push notifications
+
+---
+
+## 🔄 Deploying Future Changes
+
+Whenever you change the code:
+
+```bash
+git add .
+git commit -m "Short description of the change"
+git push
+```
+
+Render will detect the push and redeploy the web service.
+
+---
+
+**Stuck?** Check the **Logs** tab on your Render Web Service for errors, or open `TROUBLESHOOTING.md` in this repo.
